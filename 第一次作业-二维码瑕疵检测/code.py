@@ -1,11 +1,11 @@
-#!/usr/bin/env python2
+
 # -*- coding: utf-8 -*-
 
 import numpy as np
 import cv2
 
 
-image = cv2.imread('./test_images/barcode_7.png')
+image = cv2.imread('./test_images/barcode_3.png')
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 gaussianBlur = cv2.GaussianBlur(gray, (3, 3), 0)
 gradX = cv2.Sobel(gaussianBlur, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
@@ -18,6 +18,10 @@ sobel = cv2.convertScaleAbs(grad)
 blurred = cv2.blur(sobel, (3, 3))
 _, barcodeThresh = cv2.threshold(blurred, 180, 255, cv2.THRESH_BINARY)
 
+cv2.imshow("barcodeThresh",barcodeThresh)
+cv2.waitKey(0)
+
+
 barcodeKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 10))
 closed = cv2.morphologyEx(barcodeThresh, cv2.MORPH_CLOSE, barcodeKernel)
 closed = cv2.erode(closed, None, iterations=4)
@@ -28,11 +32,11 @@ barcodeCnt1 = sorted(barcodeContours, key=cv2.contourArea, reverse=True)[0]
 barcodeCnt2 = sorted(barcodeContours, key=cv2.contourArea, reverse=True)[1]
 center1, size1, angle1 = cv2.minAreaRect(barcodeCnt1)
 center2, size2, angle2 = cv2.minAreaRect(barcodeCnt2)
-print(angle1,angle2)
-rotated = cv2.getRotationMatrix2D(center2, angle2, 1)
+# print(angle1,angle2)
+rotated = cv2.getRotationMatrix2D(center2,angle2, 1)
 rows, cols, _ = image.shape
 rotatedImage = cv2.warpAffine(image, rotated, (cols, rows))
-
+cv2.imshow('rotatedImage', rotatedImage)
 if abs(angle1) > 45:
     rect1 = (center1, size1, 90)
     box1 = np.int0(cv2.boxPoints(rect1))
@@ -61,7 +65,7 @@ else:
     box2 = np.int0(cv2.boxPoints(rect2))
     cv2.drawContours(rotatedImage, [box2], -1, (255, 0, 0), 2)
 
-cv2.imshow('img', rotatedImage)
+# cv2.imshow('img', rotatedImage)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
@@ -72,10 +76,14 @@ ROI2 = rotatedImage[box2[1][1]+5:box2[0][1]-5, box2[1][0]:box2[2][0]]
 
 def detect(ROI):
     defectKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 30))
+    # cv2.imshow("ROI",ROI)
     eroded = cv2.erode(ROI, defectKernel)
+    # cv2.imshow("eroded",eroded)
     defect = cv2.subtract(ROI, eroded)
+    # cv2.imshow("defect",defect)
     _, defectThresh = cv2.threshold(defect, 25, 255, cv2.THRESH_BINARY)
-
+    # cv2.imshow("defectThresh",defectThresh)
+    cv2.waitKey(0)
     b, g, r = cv2.split(defectThresh)
     merged = cv2.merge([r-r, r-r, r])
     defectGray = cv2.cvtColor(merged, cv2.COLOR_BGR2GRAY)
